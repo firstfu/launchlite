@@ -113,7 +113,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let launchpadView = LaunchpadView()
             .environmentObject(appState)
             .modelContainer(modelContainer)
-        windowController = LaunchpadWindowController(rootView: launchpadView)
+        let wc = LaunchpadWindowController(rootView: launchpadView)
+        wc.onDismiss = { [weak self] in
+            self?.appState.hide()
+        }
+        windowController = wc
     }
 
     // MARK: - Input Services

@@ -11,6 +11,9 @@ import AppKit
 /// Floats above all windows with a blurred background effect.
 class LaunchpadPanel: NSPanel {
 
+    /// Called when the panel is dismissed (via Esc or clicking empty area).
+    var onDismiss: (() -> Void)?
+
     /// The visual effect view providing the blur background.
     private let blurView: NSVisualEffectView = {
         let view = NSVisualEffectView()
@@ -54,7 +57,7 @@ class LaunchpadPanel: NSPanel {
     override func keyDown(with event: NSEvent) {
         // Esc key (keyCode 53) closes the panel
         if event.keyCode == 53 {
-            orderOutWithAnimation()
+            dismiss()
         } else {
             super.keyDown(with: event)
         }
@@ -70,19 +73,12 @@ class LaunchpadPanel: NSPanel {
         // If the hit view is the content view itself or the blur view,
         // the user clicked on empty area - close the panel
         if hitView === contentView || hitView === blurView {
-            orderOutWithAnimation()
+            dismiss()
         }
     }
 
-    /// Hides the panel with a fade-out animation.
-    func orderOutWithAnimation() {
-        NSAnimationContext.runAnimationGroup { context in
-            context.duration = 0.3
-            context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
-            self.animator().alphaValue = 0.0
-        } completionHandler: { [weak self] in
-            self?.orderOut(nil)
-            self?.alphaValue = 1.0
-        }
+    /// Dismisses the panel and notifies the delegate via onDismiss callback.
+    func dismiss() {
+        onDismiss?()
     }
 }

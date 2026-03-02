@@ -15,6 +15,9 @@ class LaunchpadWindowController: NSWindowController {
     /// Whether the panel is currently visible.
     private(set) var isPanelVisible = false
 
+    /// Called when the panel is dismissed by user interaction (Esc or click on empty area).
+    var onDismiss: (() -> Void)?
+
     /// Creates a new window controller with the given SwiftUI root view.
     convenience init<Content: View>(rootView: Content) {
         let screen = Self.screenWithMouse() ?? NSScreen.main ?? NSScreen.screens.first!
@@ -26,6 +29,12 @@ class LaunchpadWindowController: NSWindowController {
         hostingView.frame = panel.contentView?.bounds ?? screen.frame
         hostingView.autoresizingMask = [.width, .height]
         panel.contentView?.addSubview(hostingView)
+
+        // Wire panel dismiss to controller
+        panel.onDismiss = { [weak self] in
+            self?.hidePanel()
+            self?.onDismiss?()
+        }
     }
 
     /// Shows the panel with a fade-in and scale animation on the screen where the mouse is.
