@@ -16,9 +16,11 @@ class LaunchpadPanel: NSPanel {
     /// Called when the panel is dismissed (via Esc or clicking empty area).
     var onDismiss: (() -> Void)?
 
-    /// Called when the user swipes horizontally to change pages.
-    /// Parameter: +1 for next page (swipe left), -1 for previous page (swipe right).
-    var onPageSwipe: ((Int) -> Void)?
+    /// Called continuously during trackpad scroll with cumulative horizontal delta (pixels).
+    var onScrollUpdate: ((CGFloat) -> Void)?
+
+    /// Called when trackpad scroll gesture ends, to trigger page snap.
+    var onScrollEnd: (() -> Void)?
 
     /// Accumulated horizontal scroll delta during a trackpad swipe gesture.
     private var scrollDeltaX: CGFloat = 0
@@ -110,7 +112,7 @@ class LaunchpadPanel: NSPanel {
         }
     }
 
-    /// 處理觸控板滑動事件，累積水平滑動量超過閾值時切換頁面。
+    /// 處理觸控板滑動事件，即時更新水平偏移量以實現跟隨手勢的翻頁效果。
     override func scrollWheel(with event: NSEvent) {
         // Only handle trackpad scroll gestures (they report phase),
         // ignore discrete mouse scroll wheels.
@@ -130,22 +132,19 @@ class LaunchpadPanel: NSPanel {
         case .changed:
             guard isTrackpadScrolling else { return }
             scrollDeltaX += event.scrollingDeltaX
+            onScrollUpdate?(scrollDeltaX)
 
         case .ended:
             guard isTrackpadScrolling else { return }
             scrollDeltaX += event.scrollingDeltaX
-
-            let threshold: CGFloat = 50
-            if scrollDeltaX > threshold {
-                onPageSwipe?(-1)  // swipe right → previous page
-            } else if scrollDeltaX < -threshold {
-                onPageSwipe?(1)   // swipe left → next page
-            }
-
+            onScrollUpdate?(scrollDeltaX)
+            onScrollEnd?()
             scrollDeltaX = 0
             isTrackpadScrolling = false
 
         case .cancelled:
+            onScrollUpdate?(0)
+            onScrollEnd?()
             scrollDeltaX = 0
             isTrackpadScrolling = false
 

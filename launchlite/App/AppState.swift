@@ -9,6 +9,7 @@
 import AppKit
 import Combine
 import SwiftData
+import SwiftUI
 
 /// 應用程式全域狀態管理器，管理 Launchpad 的可見性、搜尋過濾、分頁及應用程式啟動。
 @MainActor
@@ -20,6 +21,10 @@ final class AppState: ObservableObject {
     @Published var searchText = ""
     @Published var isEditMode = false
     @Published var currentPage = 0
+    /// 翻頁手勢期間的即時水平偏移量（像素），正值向右、負值向左。
+    @Published var pageDragOffset: CGFloat = 0
+    /// 當前視口寬度，由 AppGridView 的 GeometryReader 設定。
+    var viewportWidth: CGFloat = 0
     @Published private(set) var installedApps: [ScannedApp] = []
     @Published private(set) var filteredApps: [ScannedApp] = []
 
@@ -78,6 +83,7 @@ final class AppState: ObservableObject {
             .removeDuplicates()
             .sink { [weak self] _ in
                 self?.currentPage = 0
+                self?.pageDragOffset = 0
             }
             .store(in: &cancellables)
     }
@@ -116,6 +122,32 @@ final class AppState: ObservableObject {
         gridLayoutManager.items(forPage: page, perPage: appsPerPage)
     }
 
+    // MARK: - Page Snap
+
+    /// 根據當前拖動偏移量吸附到最近的頁面，支援預測偏移以考慮手勢速度。
+    func snapToNearestPage(predictedOffset: CGFloat? = nil) {
+        guard viewportWidth > 0 else {
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                pageDragOffset = 0
+            }
+            return
+        }
+
+        let snapOffset = predictedOffset ?? pageDragOffset
+        let effectivePosition = CGFloat(currentPage) - snapOffset / viewportWidth
+        let targetPage = max(0, min(totalPages - 1, Int(round(effectivePosition))))
+
+        // 調整偏移量以補償頁碼變化（瞬間完成，視覺位置不變）
+        let pageDelta = targetPage - currentPage
+        pageDragOffset += CGFloat(pageDelta) * viewportWidth
+        currentPage = targetPage
+
+        // 動畫將偏移量歸零（視覺上平滑吸附到目標頁面）
+        withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+            pageDragOffset = 0
+        }
+    }
+
     // MARK: - Visibility
 
     /// 顯示 Launchpad，重設搜尋文字、編輯模式及頁碼至初始狀態。
@@ -123,6 +155,7 @@ final class AppState: ObservableObject {
         searchText = ""
         isEditMode = false
         currentPage = 0
+        pageDragOffset = 0
         isVisible = true
     }
 

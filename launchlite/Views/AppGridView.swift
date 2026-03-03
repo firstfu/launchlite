@@ -16,8 +16,8 @@ extension UTType {
     static let launchLiteGridItem = UTType(exportedAs: "com.firstfu.tw.launchlite.griditem")
 }
 
-/// Displays the grid of app icons for the current page, with support for
-/// page transitions, drag-and-drop rearranging, and folder creation.
+/// Displays all pages of app icons in a horizontal strip, with support for
+/// continuous gesture-driven page scrolling, drag-and-drop rearranging, and folder creation.
 struct AppGridView: View {
     @EnvironmentObject private var appState: AppState
     @EnvironmentObject private var gridLayoutManager: GridLayoutManager
@@ -51,44 +51,92 @@ struct AppGridView: View {
         return rows * cellHeight + (rows - 1) * 32
     }
 
-    /// 根據搜尋狀態顯示搜尋模式網格或自訂排序網格。
+    /// 將所有頁面水平排列在 HStack 中，透過偏移量實現即時跟隨手勢的翻頁效果。
     var body: some View {
-        Group {
-            if appState.isSearching {
-                searchGrid
-            } else {
-                customOrderGrid
+        GeometryReader { geometry in
+            let pageWidth = geometry.size.width
+            let totalPages = max(1, appState.totalPages)
+
+            HStack(spacing: 0) {
+                ForEach(0..<totalPages, id: \.self) { pageIndex in
+                    pageContent(for: pageIndex)
+                        .frame(width: pageWidth, alignment: .top)
+                }
+            }
+            .offset(x: pageOffset(pageWidth: pageWidth))
+            .onChange(of: geometry.size.width) { _, newWidth in
+                appState.viewportWidth = newWidth
+            }
+            .onAppear {
+                appState.viewportWidth = geometry.size.width
             }
         }
-        .frame(height: expectedGridHeight, alignment: .top)
+        .frame(height: expectedGridHeight)
+        .onChange(of: gridLayoutManager.draggedItemID) { _, newValue in
+            if newValue == nil {
+                hoveredItemID = nil
+                folderCreationTimer?.invalidate()
+                folderCreationTimer = nil
+            }
+        }
+    }
+
+    // MARK: - Page Offset
+
+    /// 計算 HStack 的水平偏移量，包含基礎頁面偏移和拖動偏移（含邊緣橡皮筋效果）。
+    private func pageOffset(pageWidth: CGFloat) -> CGFloat {
+        let baseOffset = -CGFloat(appState.currentPage) * pageWidth
+        let drag = appState.pageDragOffset
+
+        // Rubber-band dampening at edges
+        let effectiveDrag: CGFloat
+        if appState.currentPage == 0 && drag > 0 {
+            effectiveDrag = rubberBand(drag)
+        } else if appState.currentPage >= appState.totalPages - 1 && drag < 0 {
+            effectiveDrag = -rubberBand(-drag)
+        } else {
+            effectiveDrag = drag
+        }
+
+        return baseOffset + effectiveDrag
+    }
+
+    /// 橡皮筋阻尼公式，模擬原生 Launchpad 邊緣過捲效果。
+    private func rubberBand(_ offset: CGFloat) -> CGFloat {
+        let dimension: CGFloat = 800
+        return (1 - (1 / (offset / dimension + 1))) * dimension
+    }
+
+    // MARK: - Page Content
+
+    /// 根據搜尋狀態建立對應頁面的網格內容。
+    @ViewBuilder
+    private func pageContent(for page: Int) -> some View {
+        if appState.isSearching {
+            searchPageGrid(for: page)
+        } else {
+            customOrderPageGrid(for: page)
+        }
     }
 
     // MARK: - Search Mode Grid (flat, alphabetical, no folders)
 
     /// 搜尋模式的扁平網格視圖，按字母順序顯示過濾後的應用程式（無資料夾）。
-    private var searchGrid: some View {
-        let currentApps = appState.apps(forPage: appState.currentPage)
-
+    private func searchPageGrid(for page: Int) -> some View {
+        let apps = appState.apps(forPage: page)
         return LazyVGrid(columns: columns, spacing: 32) {
-            ForEach(currentApps) { app in
+            ForEach(apps) { app in
                 AppIconView(app: app, iconSize: iconSize)
             }
         }
         .padding(.horizontal, 64)
-        .transition(.asymmetric(
-            insertion: .move(edge: .trailing).combined(with: .opacity),
-            removal: .move(edge: .leading).combined(with: .opacity)
-        ))
-        .id("search-\(appState.currentPage)")
-        .animation(.spring(response: 0.4, dampingFraction: 0.85), value: appState.currentPage)
     }
 
     // MARK: - Custom Order Grid (with folders and drag-and-drop)
 
     /// 自訂排序的網格視圖，支援資料夾顯示和拖放重排。
-    private var customOrderGrid: some View {
-        let items = appState.gridItems(forPage: appState.currentPage)
-
+    private func customOrderPageGrid(for page: Int) -> some View {
+        let items = appState.gridItems(forPage: page)
         return LazyVGrid(columns: columns, spacing: 32) {
             ForEach(items) { item in
                 gridCell(for: item)
@@ -120,19 +168,6 @@ struct AppGridView: View {
             }
         }
         .padding(.horizontal, 64)
-        .onChange(of: gridLayoutManager.draggedItemID) { _, newValue in
-            if newValue == nil {
-                hoveredItemID = nil
-                folderCreationTimer?.invalidate()
-                folderCreationTimer = nil
-            }
-        }
-        .transition(.asymmetric(
-            insertion: .move(edge: .trailing).combined(with: .opacity),
-            removal: .move(edge: .leading).combined(with: .opacity)
-        ))
-        .id("grid-\(appState.currentPage)")
-        .animation(.spring(response: 0.4, dampingFraction: 0.85), value: appState.currentPage)
     }
 
     // MARK: - Grid Cell

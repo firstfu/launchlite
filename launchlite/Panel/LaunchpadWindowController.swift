@@ -20,8 +20,11 @@ class LaunchpadWindowController: NSWindowController {
     /// Called when the panel is dismissed by user interaction (Esc or click on empty area).
     var onDismiss: (() -> Void)?
 
-    /// Called when the user swipes horizontally on the trackpad to change pages.
-    var onPageSwipe: ((Int) -> Void)?
+    /// Called continuously during trackpad scroll with cumulative horizontal delta.
+    var onScrollUpdate: ((CGFloat) -> Void)?
+
+    /// Called when trackpad scroll gesture ends, to trigger page snap.
+    var onScrollEnd: (() -> Void)?
 
     /// Creates a new window controller with the given SwiftUI root view.
     convenience init<Content: View>(rootView: Content) {
@@ -41,9 +44,12 @@ class LaunchpadWindowController: NSWindowController {
             self?.onDismiss?()
         }
 
-        // Wire page swipe to controller
-        panel.onPageSwipe = { [weak self] direction in
-            self?.onPageSwipe?(direction)
+        // Wire continuous scroll tracking to controller
+        panel.onScrollUpdate = { [weak self] delta in
+            self?.onScrollUpdate?(delta)
+        }
+        panel.onScrollEnd = { [weak self] in
+            self?.onScrollEnd?()
         }
     }
 

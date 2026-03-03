@@ -24,8 +24,13 @@ struct PageIndicatorView: View {
                         .shadow(color: .white.opacity(isActive ? 0.3 : 0.0), radius: 4)
                         .animation(.spring(response: 0.35, dampingFraction: 0.7), value: appState.currentPage)
                         .onTapGesture {
+                            let pageDelta = index - appState.currentPage
+                            guard pageDelta != 0 else { return }
+                            // 先切換頁碼並設定補償偏移（視覺位置不變），再動畫歸零偏移
+                            appState.currentPage = index
+                            appState.pageDragOffset = CGFloat(pageDelta) * appState.viewportWidth
                             withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
-                                appState.currentPage = index
+                                appState.pageDragOffset = 0
                             }
                         }
                 }
