@@ -4,6 +4,7 @@
 //
 //  Created on 2026/3/2.
 //
+//  網格佈局管理器，負責合併掃描的應用程式與 SwiftData 持久化的排序和資料夾資訊。
 
 import AppKit
 import Combine
@@ -28,6 +29,7 @@ final class GridLayoutManager: ObservableObject {
     private var lastScannedApps: [ScannedApp] = []
     private var dragCheckTimer: Timer?
 
+    /// 初始化網格佈局管理器，注入 SwiftData ModelContext。
     init(modelContext: ModelContext) {
         self.modelContext = modelContext
     }
@@ -48,6 +50,7 @@ final class GridLayoutManager: ObservableObject {
         stopDragCheckTimer()
     }
 
+    /// 啟動拖曳檢查計時器，偵測滑鼠釋放以結束拖曳狀態。
     private func startDragCheckTimer() {
         stopDragCheckTimer()
         // Use .common run loop mode so the timer fires during event-tracking
@@ -61,6 +64,7 @@ final class GridLayoutManager: ObservableObject {
         dragCheckTimer = timer
     }
 
+    /// 停止並清除拖曳檢查計時器。
     private func stopDragCheckTimer() {
         dragCheckTimer?.invalidate()
         dragCheckTimer = nil
@@ -150,6 +154,7 @@ final class GridLayoutManager: ObservableObject {
 
     // MARK: - Pagination
 
+    /// 取得指定頁面的網格項目列表。
     func items(forPage page: Int, perPage: Int) -> [GridSlotItem] {
         guard perPage > 0 else { return [] }
         let start = page * perPage
@@ -158,10 +163,12 @@ final class GridLayoutManager: ObservableObject {
         return Array(allItems[start..<end])
     }
 
+    /// 所有網格項目的總數。
     var totalItems: Int { allItems.count }
 
     // MARK: - Move / Reorder
 
+    /// 將項目從指定索引移動到目標索引，並重新分配所有項目的排序順序。
     func moveItem(fromIndex: Int, toIndex: Int) {
         guard fromIndex != toIndex,
               fromIndex >= 0, fromIndex < allItems.count,
@@ -344,16 +351,19 @@ final class GridLayoutManager: ObservableObject {
 
     // MARK: - Private Helpers
 
+    /// 從 SwiftData 取得所有 AppItem，按排序順序排列。
     private func fetchAllAppItems() -> [AppItem] {
         let descriptor = FetchDescriptor<AppItem>(sortBy: [SortDescriptor(\.sortOrder)])
         return (try? modelContext.fetch(descriptor)) ?? []
     }
 
+    /// 從 SwiftData 取得所有 AppFolder，按排序順序排列。
     private func fetchAllFolders() -> [AppFolder] {
         let descriptor = FetchDescriptor<AppFolder>(sortBy: [SortDescriptor(\.sortOrder)])
         return (try? modelContext.fetch(descriptor)) ?? []
     }
 
+    /// 根據 Bundle ID 從 SwiftData 查詢對應的 AppItem。
     private func fetchAppItem(bundleID: String) -> AppItem? {
         let descriptor = FetchDescriptor<AppItem>(
             predicate: #Predicate { $0.bundleID == bundleID }

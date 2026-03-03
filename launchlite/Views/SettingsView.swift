@@ -4,6 +4,7 @@
 //
 //  Created on 2026/3/2.
 //
+//  設定視圖，提供外觀、快捷鍵和一般設定的分頁介面。
 
 import ServiceManagement
 import SwiftData
@@ -15,6 +16,7 @@ struct SettingsView: View {
     @Environment(\.modelContext) private var modelContext
     @Query private var allPreferences: [UserPreferences]
 
+    /// 取得目前的使用者偏好設定，若不存在則建立新的預設設定。
     private var prefs: UserPreferences {
         if let existing = allPreferences.first {
             return existing
@@ -24,6 +26,7 @@ struct SettingsView: View {
         return newPrefs
     }
 
+    /// 建立設定視窗，包含外觀、快捷鍵和一般三個分頁。
     var body: some View {
         TabView {
             AppearanceTab(prefs: prefs)
@@ -54,9 +57,11 @@ struct SettingsView: View {
 
 // MARK: - Appearance Tab
 
+/// 外觀設定分頁，提供網格列數、欄數和圖示大小的調整控制。
 private struct AppearanceTab: View {
     @Bindable var prefs: UserPreferences
 
+    /// 建立外觀設定表單，包含格狀排列和圖示大小的滑桿控制。
     var body: some View {
         Form {
             Section("格狀排列") {
@@ -108,11 +113,13 @@ private struct AppearanceTab: View {
 
 // MARK: - Shortcuts Tab
 
+/// 快捷鍵設定分頁，提供鍵盤快捷鍵、觸控板手勢和螢幕角落觸發的設定。
 private struct ShortcutsTab: View {
     @Bindable var prefs: UserPreferences
     @State private var isRecordingHotkey = false
     @AppStorage("gestureEnabled") private var gestureEnabled = true
 
+    /// 建立快捷鍵設定表單，包含快捷鍵錄製、手勢開關和熱角設定。
     var body: some View {
         Form {
             Section("鍵盤快捷鍵") {
@@ -159,6 +166,7 @@ private struct ShortcutsTab: View {
 
 // MARK: - General Tab
 
+/// 一般設定分頁，提供選單列顯示、開機啟動和佈局重設等功能。
 private struct GeneralTab: View {
     @Bindable var prefs: UserPreferences
     let modelContext: ModelContext
@@ -167,6 +175,7 @@ private struct GeneralTab: View {
     @State private var showLoginError = false
     @State private var loginErrorMessage = ""
 
+    /// 建立一般設定表單，包含選單列、啟動和重設區塊。
     var body: some View {
         Form {
             Section("選單列") {
@@ -208,6 +217,7 @@ private struct GeneralTab: View {
         }
     }
 
+    /// 設定或取消應用程式的登入時自動啟動，透過 SMAppService 註冊或註銷。
     private func setLaunchAtLogin(_ enabled: Bool) {
         do {
             if enabled {
@@ -223,6 +233,7 @@ private struct GeneralTab: View {
         }
     }
 
+    /// 重設所有佈局配置至預設值，清除所有資料夾和自訂排序。
     private func resetLayout() {
         let descriptor = FetchDescriptor<AppItem>()
         guard let items = try? modelContext.fetch(descriptor) else { return }
@@ -255,10 +266,12 @@ private struct GeneralTab: View {
 
 // MARK: - Hotkey Recorder
 
+/// 快捷鍵錄製按鈕，點擊後進入錄製模式等待使用者按下新的快捷鍵組合。
 private struct HotKeyRecorderButton: View {
     @Binding var hotkey: String
     @Binding var isRecording: Bool
 
+    /// 建立快捷鍵錄製按鈕，錄製中顯示提示文字和強調邊框。
     var body: some View {
         Button {
             isRecording.toggle()
@@ -293,6 +306,7 @@ private struct HotKeyRecorderRepresentable: NSViewRepresentable {
     @Binding var hotkey: String
     @Binding var isRecording: Bool
 
+    /// 建立鍵盤事件捕捉視圖並設定錄製和取消的回呼。
     func makeNSView(context: Context) -> HotKeyCapturingView {
         let view = HotKeyCapturingView()
         view.onKeyRecorded = { recorded in
@@ -308,6 +322,7 @@ private struct HotKeyRecorderRepresentable: NSViewRepresentable {
         return view
     }
 
+    /// 更新視圖（目前無需更新操作）。
     func updateNSView(_ nsView: HotKeyCapturingView, context: Context) {}
 }
 
@@ -316,8 +331,10 @@ final class HotKeyCapturingView: NSView {
     var onKeyRecorded: ((String) -> Void)?
     var onCancel: (() -> Void)?
 
+    /// 宣告此視圖可接收鍵盤焦點。
     override var acceptsFirstResponder: Bool { true }
 
+    /// 處理鍵盤事件，解析修飾鍵和按鍵組合後回傳快捷鍵字串。
     override func keyDown(with event: NSEvent) {
         // Escape cancels recording
         if event.keyCode == 53 {

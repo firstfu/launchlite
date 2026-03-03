@@ -4,9 +4,12 @@
 //
 //  Created by firstfu on 2026/3/2.
 //
+//  觸控板手勢監聽器，偵測捏合縮小手勢以觸發 Launchpad 顯示。
+//
 
 import Cocoa
 
+/// 觸控板手勢監聽器，監聽全域捏合縮小（magnify）手勢來觸發 Launchpad。
 @MainActor
 final class GestureMonitor {
     private var monitor: Any?
@@ -23,6 +26,7 @@ final class GestureMonitor {
     private var cumulativeMagnification: CGFloat = 0
     private var gestureInProgress: Bool = false
 
+    /// 初始化手勢監聽器，設定觸發時的回呼函數。
     init(onTrigger: @escaping () -> Void) {
         self.onTrigger = onTrigger
     }
@@ -35,6 +39,7 @@ final class GestureMonitor {
 
     // MARK: - Start / Stop
 
+    /// 開始監聽全域觸控板捏合手勢事件。
     func start() {
         guard monitor == nil else { return }
 
@@ -45,6 +50,7 @@ final class GestureMonitor {
         }
     }
 
+    /// 停止監聽觸控板手勢事件並重設手勢狀態。
     func stop() {
         if let monitor = monitor {
             NSEvent.removeMonitor(monitor)
@@ -55,6 +61,7 @@ final class GestureMonitor {
 
     // MARK: - Event Handling
 
+    /// 處理觸控板放大/縮小事件，追蹤手勢的開始、變化及結束階段。
     private func handleMagnifyEvent(_ event: NSEvent) {
         switch event.phase {
         case .began:
@@ -81,6 +88,7 @@ final class GestureMonitor {
         }
     }
 
+    /// 評估累積的捏合量是否超過閾值，並在滿足防抖條件時觸發回呼。
     private func evaluateGesture() {
         guard cumulativeMagnification < magnificationThreshold else { return }
 
@@ -91,6 +99,7 @@ final class GestureMonitor {
         onTrigger()
     }
 
+    /// 重設手勢追蹤狀態（進行中標記和累積量）。
     private func resetGestureState() {
         gestureInProgress = false
         cumulativeMagnification = 0

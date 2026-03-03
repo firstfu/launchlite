@@ -4,11 +4,14 @@
 //
 //  Created by firstfu on 2026/3/2.
 //
+//  應用程式掃描器，負責掃描系統中已安裝的應用程式並監聽檔案系統變更。
+//
 
 import AppKit
 import Combine
 import Foundation
 
+/// 掃描到的應用程式資料結構，包含 Bundle ID、名稱、路徑和圖示。
 struct ScannedApp: Sendable, Identifiable, Hashable {
     let bundleID: String
     let name: String
@@ -18,6 +21,7 @@ struct ScannedApp: Sendable, Identifiable, Hashable {
     var id: String { bundleID }
 }
 
+/// 應用程式掃描器，掃描 /Applications 等目錄中的已安裝應用程式，並監聽檔案系統變更自動更新。
 @MainActor
 final class AppScanner: ObservableObject {
 
@@ -31,6 +35,7 @@ final class AppScanner: ObservableObject {
 
     private var fileSources: [DispatchSourceFileSystemObject] = []
 
+    /// 初始化掃描器並開始監聽應用程式目錄的檔案系統變更。
     init() {
         startMonitoring()
     }
@@ -44,6 +49,7 @@ final class AppScanner: ObservableObject {
 
     // MARK: - Public
 
+    /// 在背景執行緒掃描所有搜尋路徑，回傳按名稱排序的應用程式列表。
     func scan() async -> [ScannedApp] {
         let paths = searchPaths
         let scanned = await Task.detached {
@@ -56,6 +62,7 @@ final class AppScanner: ObservableObject {
 
     // MARK: - File System Monitoring
 
+    /// 啟動檔案系統監聽，當應用程式目錄發生變更時自動重新掃描。
     private func startMonitoring() {
         for path in searchPaths {
             let fd = open(path, O_EVTONLY)
@@ -84,6 +91,7 @@ final class AppScanner: ObservableObject {
 
     // MARK: - Scanning (nonisolated)
 
+    /// 執行實際的檔案系統掃描，遍歷所有搜尋路徑並收集應用程式資訊。
     nonisolated private static func performScan(searchPaths: [String]) -> [ScannedApp] {
         var results: [String: ScannedApp] = [:]
 
@@ -110,6 +118,7 @@ final class AppScanner: ObservableObject {
         }
     }
 
+    /// 從應用程式 URL 建立 ScannedApp 實例，讀取 Bundle 資訊和圖示。
     nonisolated private static func scannedApp(from url: URL) -> ScannedApp? {
         guard let bundle = Bundle(url: url),
               let bundleID = bundle.bundleIdentifier
@@ -125,6 +134,7 @@ final class AppScanner: ObservableObject {
         return ScannedApp(bundleID: bundleID, name: name, url: url, icon: icon)
     }
 
+    /// 判斷應用程式是否應被過濾排除（隱藏檔案、系統工具程式等）。
     nonisolated private static func isFilteredApp(_ url: URL) -> Bool {
         let name = url.lastPathComponent
         if name.hasPrefix(".") { return true }

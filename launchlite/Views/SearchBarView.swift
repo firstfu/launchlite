@@ -4,6 +4,7 @@
 //
 //  Created on 2026/3/2.
 //
+//  搜尋列視圖，提供半透明圓角搜尋欄位，附帶聚焦動畫效果。
 
 import SwiftUI
 
@@ -13,6 +14,7 @@ struct SearchBarView: View {
     @FocusState private var isFocused: Bool
     @State private var animateFocus = false
 
+    /// 建立搜尋列視圖，包含放大鏡圖示、文字輸入欄位和清除按鈕，附帶聚焦時的邊框和陰影動畫。
     var body: some View {
         HStack(spacing: 8) {
             Image(systemName: "magnifyingglass")

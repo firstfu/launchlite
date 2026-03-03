@@ -4,6 +4,7 @@
 //
 //  Created on 2026/3/2.
 //
+//  Launchpad 主容器視圖，包含搜尋列、應用網格和頁面指示器，並支援手勢翻頁。
 
 import SwiftUI
 
@@ -15,6 +16,7 @@ struct LaunchpadView: View {
 
     @State private var hasAppeared = false
 
+    /// 建立 Launchpad 主視圖，包含搜尋列、應用網格、頁面指示器及資料夾覆蓋層，支援點擊關閉和滑動翻頁。
     var body: some View {
         ZStack {
             VStack(spacing: 0) {

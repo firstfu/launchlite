@@ -4,12 +4,12 @@
 //
 //  Created by firstfu on 2026/3/2.
 //
+//  全域快捷鍵管理器，使用 CGEvent Tap 攔截系統層級的鍵盤事件來觸發 Launchpad。
 
 import Cocoa
 import CoreGraphics
 
-// Nonisolated storage for the CGEvent tap callback.
-// This is accessed from the C callback which runs on an arbitrary thread.
+/// CGEvent Tap 回呼的上下文物件，儲存事件攔截器和按鍵匹配參數。
 private final class HotKeyTapContext {
     var eventTap: CFMachPort?
     var modifierFlags: CGEventFlags = [.maskAlternate, .maskCommand]
@@ -17,7 +17,7 @@ private final class HotKeyTapContext {
     var onMatch: () -> Void = {}
 }
 
-// C-compatible callback for CGEvent tap
+/// CGEvent Tap 的 C 回呼函數，比對按鍵事件是否符合設定的快捷鍵組合。
 private let hotKeyCallback: CGEventTapCallBack = { proxy, type, event, userInfo in
     if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
         if let userInfo {
@@ -49,6 +49,7 @@ private let hotKeyCallback: CGEventTapCallBack = { proxy, type, event, userInfo 
     return Unmanaged.passUnretained(event)
 }
 
+/// 全域快捷鍵管理器，透過 CGEvent Tap 攔截系統鍵盤事件，匹配設定的快捷鍵組合以觸發 Launchpad。
 @MainActor
 final class HotKeyManager {
     private var eventTap: CFMachPort?
@@ -61,6 +62,7 @@ final class HotKeyManager {
     private(set) var modifierFlags: CGEventFlags = [.maskAlternate, .maskCommand]
     private(set) var keyCode: CGKeyCode = 0x25 // 'L' key
 
+    /// 初始化快捷鍵管理器，設定觸發時的回呼函數。
     init(onTrigger: @escaping () -> Void) {
         self.onTrigger = onTrigger
         tapContext.onMatch = { [weak self] in
@@ -84,6 +86,7 @@ final class HotKeyManager {
 
     // MARK: - Configuration
 
+    /// 解析快捷鍵字串並更新修飾鍵和按鍵碼設定。
     func configure(hotkey: String) {
         let parsed = HotKeyManager.parse(hotkey: hotkey)
         self.modifierFlags = parsed.modifiers
@@ -94,6 +97,7 @@ final class HotKeyManager {
 
     // MARK: - Start / Stop
 
+    /// 啟動 CGEvent Tap 開始攔截鍵盤事件，需要輔助使用權限。回傳是否成功啟動。
     func start() -> Bool {
         guard eventTap == nil else { return true }
 
@@ -129,6 +133,7 @@ final class HotKeyManager {
         return true
     }
 
+    /// 停止 CGEvent Tap 並釋放相關資源。
     func stop() {
         if let tap = eventTap {
             CGEvent.tapEnable(tap: tap, enable: false)
@@ -147,10 +152,12 @@ final class HotKeyManager {
 
     // MARK: - Accessibility Permission
 
+    /// 檢查應用程式是否已取得輔助使用（Accessibility）權限。
     func checkAccessibilityPermission() -> Bool {
         AXIsProcessTrusted()
     }
 
+    /// 請求使用者授予輔助使用權限，顯示系統授權對話框。
     private func requestAccessibilityPermission() {
         let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
         AXIsProcessTrustedWithOptions(options)
@@ -158,6 +165,7 @@ final class HotKeyManager {
 
     // MARK: - Hotkey Parsing
 
+    /// 解析快捷鍵字串（如 "Option+Command+L"），回傳對應的修飾鍵旗標和按鍵碼。
     static func parse(hotkey: String) -> (modifiers: CGEventFlags, keyCode: CGKeyCode) {
         var modifiers: CGEventFlags = []
         var key: Character = "L"
@@ -185,6 +193,7 @@ final class HotKeyManager {
         return (modifiers, keyCode)
     }
 
+    /// 將字元轉換為對應的 macOS 虛擬按鍵碼（CGKeyCode）。
     private static func keyCodeForCharacter(_ char: Character) -> CGKeyCode {
         let keyMap: [Character: CGKeyCode] = [
             "A": 0x00, "S": 0x01, "D": 0x02, "F": 0x03,

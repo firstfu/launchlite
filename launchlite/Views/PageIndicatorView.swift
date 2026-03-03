@@ -4,6 +4,7 @@
 //
 //  Created on 2026/3/2.
 //
+//  頁面指示器視圖，以水平圓點列顯示目前頁碼，類似 iOS Launchpad 風格。
 
 import SwiftUI
 
@@ -11,6 +12,7 @@ import SwiftUI
 struct PageIndicatorView: View {
     @EnvironmentObject private var appState: AppState
 
+    /// 建立頁面指示器，僅在總頁數大於 1 時顯示，當前頁面以較寬的膠囊形狀突出。
     var body: some View {
         if appState.totalPages > 1 {
             HStack(spacing: 8) {

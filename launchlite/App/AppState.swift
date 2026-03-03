@@ -4,11 +4,13 @@
 //
 //  Created on 2026/3/2.
 //
+//  應用程式全域狀態管理器，負責管理 Launchpad 的可見性、搜尋、分頁及應用程式啟動等核心狀態。
 
 import AppKit
 import Combine
 import SwiftData
 
+/// 應用程式全域狀態管理器，管理 Launchpad 的可見性、搜尋過濾、分頁及應用程式啟動。
 @MainActor
 final class AppState: ObservableObject {
 
@@ -33,6 +35,7 @@ final class AppState: ObservableObject {
 
     // MARK: - Init
 
+    /// 初始化 AppState，注入 AppScanner 和 ModelContext 依賴並設定響應式綁定。
     init(appScanner: AppScanner, modelContext: ModelContext) {
         self.appScanner = appScanner
         self.modelContext = modelContext
@@ -43,6 +46,7 @@ final class AppState: ObservableObject {
 
     // MARK: - Reactive Bindings
 
+    /// 設定 Combine 響應式綁定，包含掃描結果同步、搜尋過濾、網格佈局同步及頁碼重設。
     private func setupBindings() {
         // Sync scanner results into installedApps
         appScanner.$apps
@@ -114,6 +118,7 @@ final class AppState: ObservableObject {
 
     // MARK: - Visibility
 
+    /// 顯示 Launchpad，重設搜尋文字、編輯模式及頁碼至初始狀態。
     func show() {
         searchText = ""
         isEditMode = false
@@ -121,12 +126,14 @@ final class AppState: ObservableObject {
         isVisible = true
     }
 
+    /// 隱藏 Launchpad，清除搜尋文字及編輯模式。
     func hide() {
         isVisible = false
         searchText = ""
         isEditMode = false
     }
 
+    /// 切換 Launchpad 的顯示與隱藏狀態。
     func toggle() {
         if isVisible {
             hide()
@@ -137,6 +144,7 @@ final class AppState: ObservableObject {
 
     // MARK: - App Launching
 
+    /// 透過 Bundle ID 啟動指定應用程式，更新 SwiftData 中的最後使用時間，並隱藏 Launchpad。
     func launchApp(bundleID: String) {
         guard let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID) else {
             return
@@ -159,12 +167,14 @@ final class AppState: ObservableObject {
 
     // MARK: - Refresh
 
+    /// 非同步重新掃描系統中已安裝的應用程式。
     func refreshApps() async {
         _ = await appScanner.scan()
     }
 
     // MARK: - Preferences Helper
 
+    /// 從 SwiftData 取得使用者偏好設定，若無則回傳預設值。
     private func fetchPreferences() -> UserPreferences {
         let descriptor = FetchDescriptor<UserPreferences>()
         if let prefs = try? modelContext.fetch(descriptor).first {

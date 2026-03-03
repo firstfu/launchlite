@@ -4,6 +4,8 @@
 //
 //  Created on 2026/3/2.
 //
+//  Launchpad 視窗控制器，管理面板的顯示/隱藏動畫及多螢幕支援。
+//
 
 import AppKit
 import SwiftUI

@@ -4,6 +4,8 @@
 //
 //  Created on 2026/3/2.
 //
+//  Launchpad 全螢幕面板，提供模糊背景、鍵盤及滑鼠事件處理。
+//
 
 import AppKit
 
@@ -42,6 +44,7 @@ class LaunchpadPanel: NSPanel {
         return view
     }()
 
+    /// 初始化全螢幕面板，設定無邊框樣式、模糊背景和暗色覆蓋層。
     init(contentRect: NSRect) {
         super.init(
             contentRect: contentRect,
@@ -72,14 +75,17 @@ class LaunchpadPanel: NSPanel {
         contentView?.addSubview(darkOverlay, positioned: .above, relativeTo: blurView)
     }
 
+    /// 允許面板成為 Key Window 以接收鍵盤事件。
     override var canBecomeKey: Bool {
         return true
     }
 
+    /// 允許面板成為 Main Window。
     override var canBecomeMain: Bool {
         return true
     }
 
+    /// 處理鍵盤事件，按下 Esc 鍵時關閉面板。
     override func keyDown(with event: NSEvent) {
         // Esc key (keyCode 53) closes the panel
         if event.keyCode == 53 {
@@ -89,6 +95,7 @@ class LaunchpadPanel: NSPanel {
         }
     }
 
+    /// 處理滑鼠點擊事件，點擊空白區域時關閉面板。
     override func mouseDown(with event: NSEvent) {
         // Check if the click is on the background (not on a subview of the hosted content)
         guard let contentView = contentView else { return }
@@ -103,6 +110,7 @@ class LaunchpadPanel: NSPanel {
         }
     }
 
+    /// 處理觸控板滑動事件，累積水平滑動量超過閾值時切換頁面。
     override func scrollWheel(with event: NSEvent) {
         // Only handle trackpad scroll gestures (they report phase),
         // ignore discrete mouse scroll wheels.

@@ -4,11 +4,14 @@
 //
 //  Created by firstfu on 2026/3/2.
 //
+//  螢幕角落觸發器，偵測滑鼠在螢幕角落停留以觸發 Launchpad 顯示。
 
 import Cocoa
 
+/// 螢幕角落觸發器，監聽滑鼠移動事件，當滑鼠在指定角落停留超過設定時間時觸發回呼。
 @MainActor
 final class HotCornerMonitor {
+    /// 螢幕四個角落的列舉定義。
     enum Corner: Int, CaseIterable, Sendable {
         case topLeft = 0
         case topRight = 1
@@ -35,6 +38,7 @@ final class HotCornerMonitor {
     private var dwellTimer: Timer?
     private var lastTriggerTime: Date = .distantPast
 
+    /// 初始化螢幕角落監聽器，設定觸發時的回呼函數。
     init(onTrigger: @escaping () -> Void) {
         self.onTrigger = onTrigger
     }
@@ -48,10 +52,12 @@ final class HotCornerMonitor {
 
     // MARK: - Configuration
 
+    /// 設定要監聽的螢幕角落。
     func configure(corner: Corner) {
         self.activeCorner = corner
     }
 
+    /// 透過角落位置整數值設定要監聽的螢幕角落。
     func configure(cornerPosition: Int) {
         if let corner = Corner(rawValue: cornerPosition) {
             self.activeCorner = corner
@@ -60,6 +66,7 @@ final class HotCornerMonitor {
 
     // MARK: - Start / Stop
 
+    /// 開始監聽全域滑鼠移動事件。
     func start() {
         guard monitor == nil else { return }
 
@@ -70,6 +77,7 @@ final class HotCornerMonitor {
         }
     }
 
+    /// 停止監聽滑鼠移動事件並清除相關計時器。
     func stop() {
         if let monitor = monitor {
             NSEvent.removeMonitor(monitor)
@@ -81,6 +89,7 @@ final class HotCornerMonitor {
 
     // MARK: - Event Handling
 
+    /// 處理滑鼠移動事件，判斷滑鼠是否進入或離開指定角落。
     private func handleMouseMoved(_ event: NSEvent) {
         let mouseLocation = NSEvent.mouseLocation
 
@@ -95,6 +104,7 @@ final class HotCornerMonitor {
         }
     }
 
+    /// 判斷指定座標是否位於目前啟用的螢幕角落偵測區域內。
     private func isInActiveCorner(_ point: NSPoint) -> Bool {
         guard let screen = NSScreen.main else { return false }
         let frame = screen.frame
@@ -117,6 +127,7 @@ final class HotCornerMonitor {
 
     // MARK: - Dwell Timer
 
+    /// 啟動停留計時器，在滑鼠進入角落時開始計時。
     private func startDwellTimer() {
         cancelDwellTimer()
         dwellTimer = Timer.scheduledTimer(withTimeInterval: dwellTime, repeats: false) { [weak self] _ in
@@ -126,11 +137,13 @@ final class HotCornerMonitor {
         }
     }
 
+    /// 取消停留計時器。
     private func cancelDwellTimer() {
         dwellTimer?.invalidate()
         dwellTimer = nil
     }
 
+    /// 停留計時器觸發時呼叫，驗證滑鼠仍在角落並檢查冷卻時間後執行觸發。
     private func dwellTimerFired() {
         // Verify mouse is still in the corner
         let mouseLocation = NSEvent.mouseLocation

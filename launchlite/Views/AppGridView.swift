@@ -4,13 +4,15 @@
 //
 //  Created on 2026/3/2.
 //
+//  應用程式網格視圖，顯示當前頁面的應用圖示，支援分頁動畫、拖放重排和資料夾建立。
 
 import SwiftUI
 import SwiftData
 import UniformTypeIdentifiers
 
-// Custom UTType for internal drag-and-drop, declared in Info.plist as exported type
+/// 擴展 UTType，定義 LaunchLite 內部拖放使用的自訂類型。
 extension UTType {
+    /// LaunchLite 網格項目的自訂 UTType，用於內部拖放識別。
     static let launchLiteGridItem = UTType(exportedAs: "com.firstfu.tw.launchlite.griditem")
 }
 
@@ -24,14 +26,17 @@ struct AppGridView: View {
     @State private var hoveredItemID: String?
     @State private var folderCreationTimer: Timer?
 
+    /// 取得目前的使用者偏好設定，若無則回傳預設值。
     private var prefs: UserPreferences {
         preferences.first ?? UserPreferences()
     }
 
+    /// 從偏好設定取得圖示大小。
     private var iconSize: CGFloat {
         prefs.iconSize
     }
 
+    /// 根據偏好設定的欄數產生 LazyVGrid 所需的欄位配置。
     private var columns: [GridItem] {
         Array(
             repeating: GridItem(.flexible(), spacing: 28),
@@ -39,20 +44,32 @@ struct AppGridView: View {
         )
     }
 
+    /// 計算滿頁 grid 的預期高度，確保每頁 grid 區域大小一致。
+    private var expectedGridHeight: CGFloat {
+        let cellHeight = iconSize + 58 // icon area (iconSize+20) + spacing (8) + text (~30)
+        let rows = CGFloat(prefs.gridRows)
+        return rows * cellHeight + (rows - 1) * 32
+    }
+
+    /// 根據搜尋狀態顯示搜尋模式網格或自訂排序網格。
     var body: some View {
-        if appState.isSearching {
-            searchGrid
-        } else {
-            customOrderGrid
+        Group {
+            if appState.isSearching {
+                searchGrid
+            } else {
+                customOrderGrid
+            }
         }
+        .frame(height: expectedGridHeight, alignment: .top)
     }
 
     // MARK: - Search Mode Grid (flat, alphabetical, no folders)
 
+    /// 搜尋模式的扁平網格視圖，按字母順序顯示過濾後的應用程式（無資料夾）。
     private var searchGrid: some View {
         let currentApps = appState.apps(forPage: appState.currentPage)
 
-        return LazyVGrid(columns: columns, alignment: .leading, spacing: 32) {
+        return LazyVGrid(columns: columns, spacing: 32) {
             ForEach(currentApps) { app in
                 AppIconView(app: app, iconSize: iconSize)
             }
@@ -68,10 +85,11 @@ struct AppGridView: View {
 
     // MARK: - Custom Order Grid (with folders and drag-and-drop)
 
+    /// 自訂排序的網格視圖，支援資料夾顯示和拖放重排。
     private var customOrderGrid: some View {
         let items = appState.gridItems(forPage: appState.currentPage)
 
-        return LazyVGrid(columns: columns, alignment: .leading, spacing: 32) {
+        return LazyVGrid(columns: columns, spacing: 32) {
             ForEach(items) { item in
                 gridCell(for: item)
                     .opacity(gridLayoutManager.draggedItemID == item.id ? 0.3 : 1.0)
@@ -119,6 +137,7 @@ struct AppGridView: View {
 
     // MARK: - Grid Cell
 
+    /// 根據 GridSlotItem 類型建立對應的網格儲存格視圖（應用程式或資料夾）。
     @ViewBuilder
     private func gridCell(for item: GridSlotItem) -> some View {
         switch item {
@@ -132,12 +151,14 @@ struct AppGridView: View {
 
 // MARK: - Drop Delegate
 
+/// 網格儲存格的拖放委託，處理拖放進入、離開、更新和執行等事件。
 struct GridCellDropDelegate: DropDelegate {
     let targetItem: GridSlotItem
     let gridLayoutManager: GridLayoutManager
     @Binding var hoveredItemID: String?
     @Binding var folderCreationTimer: Timer?
 
+    /// 拖放項目進入目標儲存格時呼叫，啟動資料夾建立計時器。
     func dropEntered(info: DropInfo) {
         print("[DROP] dropEntered for target: \(targetItem.id), draggedItemID: \(gridLayoutManager.draggedItemID ?? "nil")")
         hoveredItemID = targetItem.id
@@ -164,6 +185,7 @@ struct GridCellDropDelegate: DropDelegate {
         }
     }
 
+    /// 拖放項目離開目標儲存格時呼叫，取消資料夾建立計時器。
     func dropExited(info: DropInfo) {
         folderCreationTimer?.invalidate()
         folderCreationTimer = nil
@@ -172,10 +194,12 @@ struct GridCellDropDelegate: DropDelegate {
         }
     }
 
+    /// 拖放更新時回傳移動操作提案。
     func dropUpdated(info: DropInfo) -> DropProposal? {
         DropProposal(operation: .move)
     }
 
+    /// 執行拖放操作，將項目加入資料夾或重新排序。
     func performDrop(info: DropInfo) -> Bool {
         print("[DROP] performDrop called for target: \(targetItem.id)")
         folderCreationTimer?.invalidate()

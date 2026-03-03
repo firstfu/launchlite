@@ -4,6 +4,7 @@
 //
 //  Created on 2026/3/2.
 //
+//  資料夾視圖，顯示 3x3 迷你預覽網格，支援點擊展開、重新命名和刪除。
 
 import SwiftUI
 import SwiftData
@@ -22,6 +23,7 @@ struct FolderView: View {
     @State private var isRenaming = false
     @State private var editedName: String = ""
 
+    /// 建立資料夾視圖，包含迷你預覽、懸停效果、編輯模式刪除按鈕及重新命名功能。
     var body: some View {
         VStack(spacing: 6) {
             ZStack(alignment: .topLeading) {
@@ -83,6 +85,7 @@ struct FolderView: View {
 
     // MARK: - 3x3 Mini Grid Preview
 
+    /// 資料夾 3x3 迷你圖示預覽，顯示前 9 個應用程式的縮圖。
     private var folderPreview: some View {
         let previewItems = Array(folder.items.prefix(9))
         let miniSize = iconSize / 4
@@ -130,6 +133,7 @@ struct FolderContentOverlayView: View {
     @State private var isRenaming = false
     @State private var editedName: String = ""
 
+    /// 建立資料夾展開覆蓋層，顯示可編輯的資料夾名稱和 4 欄應用程式網格。
     var body: some View {
         ZStack {
             // Dimmed background — tap to close
@@ -229,6 +233,7 @@ struct FolderContentOverlayView: View {
         }
     }
 
+    /// 處理拖放到資料夾覆蓋層的操作，將拖曳的應用程式加入資料夾。
     private func handleFolderDrop(providers: [NSItemProvider]) -> Bool {
         guard let dragID = gridLayoutManager.draggedItemID else { return false }
         gridLayoutManager.addToFolder(itemID: dragID, folder: folder)

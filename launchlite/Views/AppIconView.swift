@@ -4,6 +4,7 @@
 //
 //  Created on 2026/3/2.
 //
+//  應用程式圖示視圖，顯示單一應用的圖示和名稱，支援懸停效果、點擊啟動和編輯模式。
 
 import SwiftUI
 
@@ -17,6 +18,7 @@ struct AppIconView: View {
     @State private var isHovering = false
     @State private var isPressed = false
 
+    /// 建立應用程式圖示視圖，包含光暈效果、陰影、懸停縮放、按壓回饋及編輯模式抖動動畫。
     var body: some View {
         VStack(spacing: 8) {
             ZStack {
