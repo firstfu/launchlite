@@ -19,7 +19,7 @@ struct AppIconView: View {
 
     var body: some View {
         VStack(spacing: 8) {
-            ZStack(alignment: .topLeading) {
+            ZStack {
                 // Soft ambient glow behind icon on hover
                 Circle()
                     .fill(.white.opacity(isHovering ? 0.08 : 0.0))
@@ -38,20 +38,21 @@ struct AppIconView: View {
                     .scaleEffect(isPressed ? 0.92 : (isHovering ? 1.06 : 1.0))
                     .animation(.spring(response: 0.3, dampingFraction: 0.65), value: isHovering)
                     .animation(.spring(response: 0.15, dampingFraction: 0.5), value: isPressed)
-
-                if appState.isEditMode {
-                    Button {
-                        // Delete action placeholder - remove from grid
-                    } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .font(.system(size: 20))
-                            .foregroundStyle(.white, .gray.opacity(0.8))
-                            .shadow(color: .black.opacity(0.4), radius: 3)
+                    .overlay(alignment: .topLeading) {
+                        if appState.isEditMode {
+                            Button {
+                                // Delete action placeholder - remove from grid
+                            } label: {
+                                Image(systemName: "xmark.circle.fill")
+                                    .font(.system(size: 20))
+                                    .foregroundStyle(.white, .gray.opacity(0.8))
+                                    .shadow(color: .black.opacity(0.4), radius: 3)
+                            }
+                            .buttonStyle(.plain)
+                            .offset(x: -4, y: -4)
+                            .transition(.scale.combined(with: .opacity))
+                        }
                     }
-                    .buttonStyle(.plain)
-                    .offset(x: -4, y: -4)
-                    .transition(.scale.combined(with: .opacity))
-                }
             }
             .rotationEffect(
                 appState.isEditMode
